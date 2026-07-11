@@ -4,7 +4,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$projectDir = (Resolve-Path (Join-Path $scriptDir "..\csharp-simulator")).Path
+$projectDir = (Resolve-Path (Join-Path $scriptDir "..\csharp_simulator")).Path
 Push-Location $projectDir
 
 try {
@@ -13,7 +13,7 @@ try {
   }
 
   if (-not $HubName) {
-    throw "Hub name not provided. Set IOTHUB_NAME environment variable (run .\1-QuickSetup\set_iothub_env.ps1 -HubName <name>) or pass -HubName explicitly."
+    throw "Hub name not provided. Set IOTHUB_NAME environment variable (run .\1_QuickSetup\set_iothub_env.ps1 -HubName <name>) or pass -HubName explicitly."
   }
 
   if (-not (Test-Path ".\devices.json")) {

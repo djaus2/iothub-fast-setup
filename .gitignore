@@ -1,4 +1,4 @@
 /VSCode*.md
-/csharp-simulator/bin/
-/csharp-simulator/obj/
-/csharp-simulator/devices.json
+/csharp_simulator/bin/
+/csharp_simulator/obj/
+/csharp_simulator/devices.json

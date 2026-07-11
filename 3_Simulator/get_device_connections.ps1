@@ -12,7 +12,7 @@ if (-not $HubName) {
 }
 
 if (-not $HubName) {
-  throw "Hub name not provided. Set IOTHUB_NAME environment variable (run .\1-QuickSetup\set_iothub_env.ps1 -HubName <name>) or pass -HubName explicitly."
+  throw "Hub name not provided. Set IOTHUB_NAME environment variable (run .\1_QuickSetup\set_iothub_env.ps1 -HubName <name>) or pass -HubName explicitly."
 }
 
 $devices = @()

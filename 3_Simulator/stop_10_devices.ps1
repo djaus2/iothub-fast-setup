@@ -6,7 +6,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $scriptDir = (Resolve-Path (Split-Path -Parent $MyInvocation.MyCommand.Path)).Path
-$projectDir = (Resolve-Path (Join-Path $scriptDir "..\csharp-simulator")).Path
+$projectDir = (Resolve-Path (Join-Path $scriptDir "..\csharp_simulator")).Path
 
 if (-not $HubName) {
   $HubName = $env:IOTHUB_NAME
