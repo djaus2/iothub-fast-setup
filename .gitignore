@@ -1,3 +1,4 @@
-/VSCode-Azure-IoTHub-CSharp-Simulator-Deployment.md
-/VSCode-Azure-IoTHub-Setup-Guide.md
-/VSCode-Azure-IoTHub-Twin-vs-Device-Update-Guide.md
+/VSCode*.md
+/csharp-simulator/bin/
+/csharp-simulator/obj/
+/csharp-simulator/devices.json
