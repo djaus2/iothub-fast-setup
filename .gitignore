@@ -2,3 +2,6 @@
 /csharp_simulator/bin/
 /csharp_simulator/obj/
 /csharp_simulator/devices.json
+/csharp-simulator/bin/
+/csharp-simulator/obj/
+/csharp-simulator/devices.json
