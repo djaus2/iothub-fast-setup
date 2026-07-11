@@ -1,7 +1,7 @@
 # Azure IoT Hub Fast Setup
 
 This repository provides a practical, script-first setup for an Azure IoT Hub lab, including  quick setup scripts:
-- creating one IoT Hub,
+- Creating one IoT Hub,
 - a C# simulator for devices
 - Telemetry with off/on capability
 - Twinning, D2C and C2D messages
