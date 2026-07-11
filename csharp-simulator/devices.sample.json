@@ -1,0 +1,10 @@
+[
+  {
+    "deviceId": "device1",
+    "connectionString": "HostName=<your-hub>.azure-devices.net;DeviceId=device1;SharedAccessKey=<key>"
+  },
+  {
+    "deviceId": "device2",
+    "connectionString": "HostName=<your-hub>.azure-devices.net;DeviceId=device2;SharedAccessKey=<key>"
+  }
+]
