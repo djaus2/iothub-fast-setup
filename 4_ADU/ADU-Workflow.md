@@ -9,6 +9,15 @@ This workflow uses IoT Hub twins to signal Device Update intent for simulator de
 - `IOTHUB_NAME` environment variable set, or pass `-HubName`
 - Simulator running from `csharp_simulator`
 
+> Note: The simulator does not install packages by itself. It only signals update intent and restart handoff through twin properties.
+
+## Scripts
+
+- [adu_get_status.ps1](adu_get_status.ps1) — get current ADU status for all or single device
+- [adu_set_target_version.ps1](adu_set_target_version.ps1) — set desired target version for all or single device
+- [adu_clear_target_version.ps1](adu_clear_target_version.ps1) — clear/rollback desired target version for all or single device 
+- [adu_restart_simulator.ps1](adu_restart_simulator.ps1) — restart simulator after external update workflow has completed
+- 
 ## 1. Generate devices.json (if needed)
 
 ```powershell

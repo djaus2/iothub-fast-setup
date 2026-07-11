@@ -2,7 +2,6 @@
 using System.Text.Json;
 using Microsoft.Azure.Devices.Client;
 using Microsoft.Azure.Devices.Shared;
-using Microsoft.Azure.Devices.Client.TransientFaultHandling;
 
 if (args.Contains("--help", StringComparer.OrdinalIgnoreCase) || args.Contains("-h", StringComparer.OrdinalIgnoreCase))
 {
