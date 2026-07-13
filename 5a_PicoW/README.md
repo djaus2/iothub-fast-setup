@@ -113,11 +113,20 @@ If a Pico board is connected, the script tries to detect whether it is a Pico W 
 .\5a_PicoW\build_upload_pico.ps1 -SketchPath .\5a_PicoW\pico_firmware\pico_firmware.ino -Action upload -Port COM6
 ```
 
-If `IOT_COM_PORT` (or `COM_PORT`) is already set in your terminal session, you can omit `-Port`:
+If `IOT_COM_PORT` (or `COM_PORT`) is already set, you can omit `-Port`:
 
 ```powershell
 .\5a_PicoW\build_upload_pico.ps1 -SketchPath .\5a_PicoW\pico_firmware\pico_firmware.ino -Action upload
 ```
+
+During upload, the script prints the effective device id when available (for example, `Using device id: picow1`).
+
+Upload port resolution order:
+- `-Port` argument
+- `IOT_COM_PORT` or `COM_PORT` environment variable (Process, then User, then Machine scope)
+- auto-detect first connected Pico COM port from `arduino-cli board list`
+
+If upload reports `No drive to deploy`, the script now pauses and prompts you to put the board into BOOTSEL/UF2 mode, then retries upload after you press Enter.
 
 ## Notes
 
@@ -125,5 +134,6 @@ If `IOT_COM_PORT` (or `COM_PORT`) is already set in your terminal session, you c
 - Pico W2 BSP note: there is no separate BSP install step. Pico W and Pico W2 are both provided by the same Earle RP2040 core (`rp2040:rp2040`) installed in Step 3.
 - To verify Pico W2 support is available, run: `arduino-cli --config-dir .\5a_PicoW\.arduino-cli board listall | Select-String "Pico 2 W|rpipico2w"`
 - If you are targeting Pico W2 and the board package uses a different name, inspect `arduino-cli board listall` first.
+- If upload fails with `No drive to deploy`, put the board into BOOTSEL mode (or reset into UF2 mode) and rerun upload.
 - Device twin and telemetry contract should stay aligned with the simulator to keep the existing monitoring scripts useful.
 - Caveat (optional): if other tools that use the global Arduino CLI config fail with an invalid `additional_urls` value, run `./5a_PicoW/cleanup_arduino_cli_global_config.ps1` once to clean malformed `[] ,` prefixes from `arduino-cli.yaml`.

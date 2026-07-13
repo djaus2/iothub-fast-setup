@@ -3,8 +3,9 @@
 #include <PubSubClient.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
-#include <mbedtls/base64.h>
-#include <mbedtls/md.h>
+#include <base64.h>
+#include <bearssl/bearssl_hash.h>
+#include <bearssl/bearssl_hmac.h>
 #include <time.h>
 
 #include "iot_config.h"
@@ -52,14 +53,78 @@ static String urlEncode(const String& input) {
 }
 
 static String base64Encode(const uint8_t* input, size_t len) {
-  size_t outLen = 0;
-  size_t maxLen = 4 * ((len + 2) / 3) + 1;
-  std::unique_ptr<uint8_t[]> out(new uint8_t[maxLen]);
-  int rc = mbedtls_base64_encode(out.get(), maxLen, &outLen, input, len);
-  if (rc != 0) {
-    return "";
+  return base64::encode(input, len, false);
+}
+
+static int base64CharValue(char c) {
+  if (c >= 'A' && c <= 'Z') return c - 'A';
+  if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+  if (c >= '0' && c <= '9') return c - '0' + 52;
+  if (c == '+') return 62;
+  if (c == '/') return 63;
+  return -1;
+}
+
+static bool base64Decode(const char* input, uint8_t* output, size_t outputMaxLen, size_t* outputLen) {
+  size_t outIndex = 0;
+  int block[4];
+  int blockIndex = 0;
+
+  for (size_t i = 0; input[i] != '\0'; ++i) {
+    char c = input[i];
+    if (c == '\r' || c == '\n' || c == ' ' || c == '\t') {
+      continue;
+    }
+
+    if (c == '=') {
+      block[blockIndex++] = -2;
+    } else {
+      int v = base64CharValue(c);
+      if (v < 0) {
+        return false;
+      }
+      block[blockIndex++] = v;
+    }
+
+    if (blockIndex == 4) {
+      int v0 = block[0];
+      int v1 = block[1];
+      int v2 = block[2];
+      int v3 = block[3];
+
+      if (v0 < 0 || v1 < 0) {
+        return false;
+      }
+
+      if (outIndex >= outputMaxLen) return false;
+      output[outIndex++] = (uint8_t)((v0 << 2) | (v1 >> 4));
+
+      if (v2 == -2) {
+        // one output byte
+      } else {
+        if (v2 < 0) return false;
+        if (outIndex >= outputMaxLen) return false;
+        output[outIndex++] = (uint8_t)(((v1 & 0x0F) << 4) | (v2 >> 2));
+
+        if (v3 == -2) {
+          // two output bytes
+        } else {
+          if (v3 < 0) return false;
+          if (outIndex >= outputMaxLen) return false;
+          output[outIndex++] = (uint8_t)(((v2 & 0x03) << 6) | v3);
+        }
+      }
+
+      blockIndex = 0;
+    }
   }
-  return String((char*)out.get()).substring(0, outLen);
+
+  if (blockIndex != 0) {
+    return false;
+  }
+
+  *outputLen = outIndex;
+  return true;
 }
 
 static String getUtcTimeString() {
@@ -92,17 +157,17 @@ static String buildSasToken(uint32_t expirySeconds = 3600) {
 
   uint8_t keyBytes[64] = {0};
   size_t keyLen = 0;
-  mbedtls_base64_decode(keyBytes, sizeof(keyBytes), &keyLen, (const uint8_t*)IOT_CONFIG_DEVICE_KEY, strlen(IOT_CONFIG_DEVICE_KEY));
+  if (!base64Decode(IOT_CONFIG_DEVICE_KEY, keyBytes, sizeof(keyBytes), &keyLen)) {
+    return "";
+  }
 
   uint8_t hmac[32] = {0};
-  mbedtls_md_context_t ctx;
-  mbedtls_md_init(&ctx);
-  const mbedtls_md_info_t* info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
-  mbedtls_md_setup(&ctx, info, 1);
-  mbedtls_md_hmac_starts(&ctx, keyBytes, keyLen);
-  mbedtls_md_hmac_update(&ctx, (const unsigned char*)toSign.c_str(), toSign.length());
-  mbedtls_md_hmac_finish(&ctx, hmac);
-  mbedtls_md_free(&ctx);
+  br_hmac_key_context keyCtx;
+  br_hmac_context hmacCtx;
+  br_hmac_key_init(&keyCtx, &br_sha256_vtable, keyBytes, keyLen);
+  br_hmac_init(&hmacCtx, &keyCtx, sizeof(hmac));
+  br_hmac_update(&hmacCtx, toSign.c_str(), toSign.length());
+  br_hmac_out(&hmacCtx, hmac);
 
   String signature = urlEncode(base64Encode(hmac, sizeof(hmac)));
   return "SharedAccessSignature sr=" + encodedUri + "&sig=" + signature + "&se=" + String(expiry);
@@ -139,9 +204,9 @@ static String deviceTopicMethodResponse(int status, String rid) {
 static void publishReportedState(const String& reason) {
   if (!mqttClient.connected()) return;
 
-  DynamicJsonDocument doc(512);
+  JsonDocument doc;
   JsonObject reported = doc.to<JsonObject>();
-  JsonObject sim = reported.createNestedObject("sim");
+  JsonObject sim = reported["sim"].to<JsonObject>();
   sim["intervalSeconds"] = state.intervalSeconds;
   sim["randomEvery"] = state.randomEvery;
   sim["tempMin"] = state.tempMin;
@@ -154,11 +219,11 @@ static void publishReportedState(const String& reason) {
   sim["lastState"] = reason;
   sim["lastUpdateUtc"] = getUtcTimeString();
 
-  JsonObject app = reported.createNestedObject("app");
+  JsonObject app = reported["app"].to<JsonObject>();
   app["name"] = APP_NAME;
   app["version"] = APP_VERSION;
 
-  JsonObject du = reported.createNestedObject("du");
+  JsonObject du = reported["du"].to<JsonObject>();
   du["targetVersion"] = state.targetVersion;
   du["restartRequested"] = state.restartRequested;
   du["note"] = "Device Update package installation is external to this app.";
@@ -184,7 +249,7 @@ static void publishTelemetry() {
     ? state.tempMin + (double)random(0, 1000) / 1000.0 * (state.tempMax - state.tempMin)
     : state.baseTemp + ((double)random(-50, 50) / 100.0);
 
-  DynamicJsonDocument doc(384);
+  JsonDocument doc;
   doc["deviceId"] = IOT_CONFIG_DEVICE_ID;
   doc["messageNumber"] = state.sendCount;
   doc["temperature"] = round(temp * 100.0) / 100.0;
@@ -200,13 +265,14 @@ static void publishTelemetry() {
 }
 
 static void updateFromDesired(const JsonObject& desired) {
-  if (desired.containsKey("sim")) {
-    JsonObject sim = desired["sim"];
-    if (sim.containsKey("intervalSeconds")) state.intervalSeconds = sim["intervalSeconds"].as<double>();
-    if (sim.containsKey("randomEvery")) state.randomEvery = sim["randomEvery"].as<int>();
-    if (sim.containsKey("tempMin")) state.tempMin = sim["tempMin"].as<double>();
-    if (sim.containsKey("tempMax")) state.tempMax = sim["tempMax"].as<double>();
-    if (sim.containsKey("baseTemp")) state.baseTemp = sim["baseTemp"].as<double>();
+  JsonVariantConst desiredSim = desired["sim"];
+  if (desiredSim.is<JsonObjectConst>()) {
+    JsonObjectConst sim = desiredSim.as<JsonObjectConst>();
+    if (!sim["intervalSeconds"].isNull()) state.intervalSeconds = sim["intervalSeconds"].as<double>();
+    if (!sim["randomEvery"].isNull()) state.randomEvery = sim["randomEvery"].as<int>();
+    if (!sim["tempMin"].isNull()) state.tempMin = sim["tempMin"].as<double>();
+    if (!sim["tempMax"].isNull()) state.tempMax = sim["tempMax"].as<double>();
+    if (!sim["baseTemp"].isNull()) state.baseTemp = sim["baseTemp"].as<double>();
   }
 
   if (state.tempMin > state.tempMax) {
@@ -215,9 +281,10 @@ static void updateFromDesired(const JsonObject& desired) {
     state.tempMax = swap;
   }
 
-  if (desired.containsKey("du")) {
-    JsonObject du = desired["du"];
-    if (du.containsKey("targetVersion")) {
+  JsonVariantConst desiredDu = desired["du"];
+  if (desiredDu.is<JsonObjectConst>()) {
+    JsonObjectConst du = desiredDu.as<JsonObjectConst>();
+    if (!du["targetVersion"].isNull()) {
       String target = du["targetVersion"].as<String>();
       if (target.length() > 0 && target != APP_VERSION) {
         state.targetVersion = target;
@@ -227,7 +294,7 @@ static void updateFromDesired(const JsonObject& desired) {
   }
 }
 
-static bool parseJsonPayload(const byte* payload, unsigned int length, DynamicJsonDocument& doc) {
+static bool parseJsonPayload(const byte* payload, unsigned int length, JsonDocument& doc) {
   DeserializationError err = deserializeJson(doc, payload, length);
   return !err;
 }
@@ -242,19 +309,19 @@ static void handleDirectMethod(const String& topic, const byte* payload, unsigne
   int status = 200;
   String responseMethod = method;
 
-  DynamicJsonDocument doc(512);
+  JsonDocument doc;
   if (length > 0) {
     deserializeJson(doc, payload, length);
   }
 
   if (method == "setText") {
-    if (doc.is<JsonObject>() && doc.containsKey("value")) state.storedText = doc["value"].as<String>();
+    if (doc.is<JsonObject>() && !doc["value"].isNull()) state.storedText = doc["value"].as<String>();
     else if (doc.is<JsonVariant>()) state.storedText = String((const char*)payload).substring(0, length);
     publishReportedState("text-updated");
   } else if (method == "getText") {
     // read-only
   } else if (method == "setNumber") {
-    if (doc.is<JsonObject>() && doc.containsKey("value")) state.storedNumber = doc["value"].as<int>();
+    if (doc.is<JsonObject>() && !doc["value"].isNull()) state.storedNumber = doc["value"].as<int>();
     else state.storedNumber = atoi((const char*)payload);
     publishReportedState("number-updated");
   } else if (method == "getNumber") {
@@ -269,7 +336,7 @@ static void handleDirectMethod(const String& topic, const byte* payload, unsigne
     status = 404;
   }
 
-  DynamicJsonDocument response(256);
+  JsonDocument response;
   response["ok"] = (status == 200);
   response["method"] = responseMethod;
   response["deviceId"] = IOT_CONFIG_DEVICE_ID;
@@ -284,9 +351,9 @@ static void handleDirectMethod(const String& topic, const byte* payload, unsigne
 
 static void handleTwinMessage(const String& topic, const byte* payload, unsigned int length) {
   if (topic.startsWith("$iothub/twin/res/200")) {
-    DynamicJsonDocument doc(1536);
+    JsonDocument doc;
     if (!parseJsonPayload(payload, length, doc)) return;
-    if (doc.containsKey("desired")) {
+    if (doc["desired"].is<JsonObject>()) {
       updateFromDesired(doc["desired"].as<JsonObject>());
       publishReportedState("twin-accepted");
     }
@@ -294,7 +361,7 @@ static void handleTwinMessage(const String& topic, const byte* payload, unsigned
   }
 
   if (topic.startsWith("$iothub/twin/PATCH/properties/desired")) {
-    DynamicJsonDocument doc(1024);
+    JsonDocument doc;
     if (!parseJsonPayload(payload, length, doc)) return;
     updateFromDesired(doc.as<JsonObject>());
     publishReportedState("desired-patch");
