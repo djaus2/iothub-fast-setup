@@ -6,4 +6,4 @@ if ([string]::IsNullOrWhiteSpace($IOTHUB_NAME) -or [string]::IsNullOrWhiteSpace(
 }
 
 az group create -n $IOT_RG -l australiaeast
-az iot hub create -g $IOT_RG -n $IOTHUB_NAME --sku B1 --partition-count 2
+az iot hub create -g $IOT_RG -n $IOTHUB_NAME --sku S1 --partition-count 2

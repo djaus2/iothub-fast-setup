@@ -5,3 +5,7 @@
 /csharp-simulator/bin/
 /csharp-simulator/obj/
 /csharp-simulator/devices.json
+
+# Arduino CLI local cache/downloads (very large, machine-specific)
+5a_PicoW/.arduino-cli/
+5_PicoW/picow-connections.json
