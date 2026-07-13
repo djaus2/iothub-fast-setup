@@ -59,7 +59,47 @@ This updates the current session and the user PATH so the next scripts can find 
 
 This script uses a repo-local `.arduino-cli` config folder so it does not inherit a broken global `additional_urls` setting.
 
-## Step 4: Build firmware
+## Step 4: Set Environment Values
+
+Set Wi-Fi and hub environment values for this terminal session.
+
+Optional COM port helper (USB Serial Device menu):  
+_Select the connected COM Port for the Pico W / Pico W2, then set `IOT_COM_PORT` for the current session._  
+
+```powershell
+.\5a_PicoW\set_com_port_env.ps1
+```
+
+Option A (explicit SSID, password, and hub name):
+
+```powershell
+.\5a_PicoW\set_iot_env.ps1 -WifiSsid "YourWiFiName" -WifiPassword "YourWiFiPassword" -IotHubName "my-iot-123"
+```
+
+Optional in any option: add `-ComPort "COM6"` to set `IOT_COM_PORT` for upload.
+
+Option B (password only):
+
+```powershell
+.\5a_PicoW\set_iot_env.ps1 -WifiPassword "YourWiFiPassword"
+```
+
+Option C (password + hub name):
+
+```powershell
+.\5a_PicoW\set_iot_env.ps1 -WifiPassword "YourWiFiPassword" -IotHubName "my-iot-123"
+```
+
+This script lists matching USB serial ports as a numbered menu, lets you select one, and sets `IOT_COM_PORT` for the current terminal session.
+
+Option B works when:
+- `IOTHUB_NAME` is already set in the current terminal session.
+- SSID can be auto-resolved from the current Wi-Fi connection (or `IOT_WIFI_SSID` is already set).
+
+Option C works when:
+- SSID can be auto-resolved from the current Wi-Fi connection (or `IOT_WIFI_SSID` is already set).
+
+## Step 5: Build firmware
 
 ```powershell
 .\5a_PicoW\build_upload_pico.ps1 -SketchPath .\5a_PicoW\pico_firmware\pico_firmware.ino -Action build
@@ -67,10 +107,16 @@ This script uses a repo-local `.arduino-cli` config folder so it does not inheri
 
 If a Pico board is connected, the script tries to detect whether it is a Pico W or Pico W2 from `arduino-cli board list` and picks the matching FQBN automatically. You can still override it with `-Fqbn` if needed.
 
-## Step 5: Upload firmware
+## Step 6: Upload firmware
 
 ```powershell
 .\5a_PicoW\build_upload_pico.ps1 -SketchPath .\5a_PicoW\pico_firmware\pico_firmware.ino -Action upload -Port COM6
+```
+
+If `IOT_COM_PORT` (or `COM_PORT`) is already set in your terminal session, you can omit `-Port`:
+
+```powershell
+.\5a_PicoW\build_upload_pico.ps1 -SketchPath .\5a_PicoW\pico_firmware\pico_firmware.ino -Action upload
 ```
 
 ## Notes

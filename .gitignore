@@ -9,4 +9,5 @@
 # Arduino CLI local cache/downloads (very large, machine-specific)
 5a_PicoW/.arduino-cli/
 5a_PicoW/pico_firmware/build/
+5a_PicoW/picow-primaryconnections.json
 5_PicoW/picow-connections.json
