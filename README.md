@@ -41,6 +41,6 @@ For more information see the blog posts:
 - [IoT Hub Device Twin vs Device Update for IoT Hub Simulators](https://davidjones2.sportronics.com.au/iot/IoT_Hub-Device_Twin_vs_Device_Update_for_IoT_Hub_Simulators-iot.html)
 - [IoT Hub C# Device Simulator Deployment](https://davidjones2.sportronics.com.au/iot/IoT_Hub-C-_Device_Simulator_Deployment-iot.html)
 - [IoT Hub ADU Workflow for IoT Hub Simulators](https://davidjones2.sportronics.com.au/iot/IoT_Hub-ADU_Workflow_for_IoT_Hub_Simulators-iot.html)
-- [IoT Hub Pico W / Pico W2 Optional Hardware Track](https://davidjones2.sportronics.com.au/iot/IoT_Hub-Pico_W_-_Pico_W2_Optional_Hardware_Track-iot.html)
+- [IoT Hub Pico W / Pico W2 Optional Hardware Track](https://davidjones2.sportronics.com.au/iot/IoT_Hub-RPI_Pico_W-iot.html)
   - Have successfully provisioned 2 RPI Pico W 2 devices and uploaded firmware to them. Verified twin values and telemetry.  
   - Both viewable and able to be interrogated in Azure IoT Explorer :).
