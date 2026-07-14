@@ -1,5 +1,7 @@
 # Azure IoT Hub Fast Setup
 
+> Nb: There is an alternative branch Softata based upon  djaus2/Softata repsotory
+
 This repository provides a practical, script-first setup for an Azure IoT Hub lab, including  quick setup scripts:
 - Creating one IoT Hub,
 - a C# simulator for devices
