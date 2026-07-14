@@ -9,7 +9,7 @@ This repository provides a practical, script-first setup for an Azure IoT Hub la
 - Device Update (under development)
 - Quick tear down
 
-## Optional Hardware Track (Pico W / Pico W2)
+## Optional Hardware Track (RPI Pico W / RPI Pico W2)
 
 An optional hardware path is available in [5_PicoW/README.md](5_PicoW/README.md).
 
@@ -31,9 +31,9 @@ Current verified steps:
 
 The Arduino CLI-based Pico flow is in [5a_PicoW/README.md](5a_PicoW/README.md).
 
-Use this when you want a host-side build/upload workflow for Pico W / Pico W2 with Earle Philhower's BSP.
+Use this when you want a host-side build/upload workflow for Pico W / Pico W2 with [Earle Philhower's BSP](https://github.com/earlephilhower/arduino-pico).
 
-## Softata Integration Track (6_Softata)
+## RPI Pico W Softata Integration Track (6_Softata)
 
 The **Softata integration** merges advanced features into the Pico W firmware:
 - ✅ **Multi-core architecture** (Core1: Sensors, Core2: MQTT/Cloud)
