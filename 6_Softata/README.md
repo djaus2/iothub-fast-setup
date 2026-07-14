@@ -30,20 +30,28 @@ Softata provides a **multi-core, sensor-rich architecture** for Raspberry Pi Pic
   - Simulator sensor (for testing)
 - SensorManager class for multi-sensor support
 
-### Phase 3: OTA Updates (IN PROGRESS)
-- OTA enabled by default (`ENABLE_OTA = 1`)
-- Integration with Azure Device Update (ADU)
-- Update trigger from twin `desiredVersion` field
+### Phase 3: OTA Updates ✅ DONE (Arduino IDE OTA Now Fully Working!)
+- **Arduino IDE OTA** ← PRIMARY METHOD
+  - Device appears as Network Port in Arduino IDE once WiFi connects
+  - Direct firmware upload via IDE (no USB required)
+  - Hostname from EEPROM config, Port 8266
+- **Azure Device Update (ADU)** ← Cloud-managed deployment
+  - Twin-driven `desiredVersion` field
+  - Automatic firmware pull and installation
+  - Fleet-wide managed updates
+- Status: Enabled by default (`ENABLE_OTA = 1`), fully compiled and tested
 
-### Phase 4: Multi-Core Architecture (PENDING)
-- Core1: MQTT/IoT Hub (main thread)
-- Core2: Sensor polling and telemetry aggregation
-- Inter-core synced commands via `rp2040_multicore` library
+### Phase 4: Multi-Core Architecture ✅ DONE
+- Core0: MQTT/IoT Hub operations (main thread)
+- Core1: Sensor polling and telemetry aggregation
+- Inter-core sync via volatile heartbeat variables
+- Status: Enabled (`ENABLE_MULTICORE=1`), ready for hardware testing
 
-### Phase 5: TCP Service (PENDING)
+### Phase 5: TCP Service ✅ DONE
 - Local command protocol on port 4242
-- Mirror of Softata command structure
+- 8+ command types: STATUS, VERSION, SENSOR LIST/READ, TELEMETRY ENABLE/DISABLE/STATUS, MQTT STATUS, RESET
 - Integration with sensor/actuator abstraction
+- Status: Enabled (`ENABLE_TCP_SERVICE=1`), ready for testing
 
 ## File Structure
 

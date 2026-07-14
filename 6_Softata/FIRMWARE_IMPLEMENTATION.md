@@ -12,13 +12,13 @@ The Softata-enhanced Pico W firmware has been successfully implemented with all 
 ## Compilation Results
 
 ```
-Sketch uses 235,624 bytes (5% of program storage space)
-Global variables use 71,320 bytes (13% of dynamic memory)
+Sketch uses 278,476 bytes (6% of program storage space)
+Global variables use 72,676 bytes (13% of dynamic memory)
 Maximum storage: 4,186,112 bytes
 Maximum RAM: 524,288 bytes
 ```
 
-**Status**: ✓ **SUCCESSFUL** - All code compiles without errors
+**Status**: ✓ **SUCCESSFUL** - All code compiles without errors, ArduinoOTA fully enabled
 
 ## Implemented Features
 
@@ -75,12 +75,19 @@ Maximum RAM: 524,288 bytes
   - Device restart via direct method
 - **Status**: Fully functional
 
-### ✓ OTA Update Framework
-- **Method**: Twin-driven `desiredVersion` field
-- **Firmware Download**: WiFi stream-to-flash using `Updater.h`
-- **Signature Verification**: Integrity check before restart
-- **Status**: Framework ready (ArduinoOTA disabled for RP2040 compatibility)
-- **Note**: Full implementation requires Azure Device Update (ADU) account
+### ✓ OTA Update Support (FULLY AVAILABLE)
+- **Method 1 - Arduino IDE OTA** ← PRIMARY
+  - Device appears in IDE as Network Port once WiFi connects
+  - Direct upload via Arduino IDE, identical workflow to USB
+  - Hostname: Configured from EEPROM `device_id`
+  - Port: 8266 (standard)
+  - **Status**: Enabled (`ENABLE_OTA=1`), fully functional
+- **Method 2 - Azure Device Update (ADU)**
+  - Twin-driven `desiredVersion` field
+  - Firmware download via MQTT/Azure Storage URL
+  - **Status**: Framework ready, ADU account setup pending
+- **Security**: MD5/SHA256 hash verification, RSA-2048 signing, password protection available
+- **Binary Impact**: +43KB for OTA library (278KB total)
 
 ### ⚠ Watchdog Monitoring
 - **Hardware**: RP2040 built-in watchdog
@@ -114,10 +121,13 @@ Maximum RAM: 524,288 bytes
 
 ## Known Limitations
 
-1. **ArduinoOTA Disabled**: The Earle Philhower Arduino BSP for RP2040 doesn't support standard ArduinoOTA. Use:
-   - Azure Device Update (ADU) for cloud-managed updates
-   - PicoOTA library for local OTA (alternative)
-   - Direct firmware flashing via USB bootloader
+1. **ArduinoOTA Status**: ✅ **FULLY SUPPORTED** - Earle Philhower Arduino BSP includes complete OTA support
+   - **Primary Method**: Arduino IDE OTA (Network port upload after WiFi connection)
+   - **Additional Methods**: HTTPUpdateServer, HTTPUpdate client, custom Update.writeStream()
+   - **Security**: MD5/SHA256 verification, RSA-2048 signing, password protection
+   - **Configuration**: Hostname from EEPROM device_id, port 8266
+   - **Status in This Build**: Enabled (compile with `ENABLE_OTA=1`)
+   - **Reference**: [Arduino-Pico OTA Documentation](https://arduino-pico.readthedocs.io/en/latest/ota.html)
 
 2. **Watchdog Integration**: Standard watchdog requires additional tuning for multi-core environment
 
