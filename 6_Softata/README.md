@@ -57,16 +57,20 @@ Softata provides a **multi-core, sensor-rich architecture** for Raspberry Pi Pic
 
 ```
 6_Softata/
-├── README.md (this file)
+├── README.md (this file - overview)
+├── DEVICE_CONFIG_QUICK_START.md (⭐ START HERE - 5 min setup)
+├── DEVICE_CONFIG_COMPREHENSIVE.md (Complete reference + troubleshooting)
 ├── ARCHITECTURE.md (multi-core design)
 ├── SENSOR_CONFIG.md (sensor setup guide)
 ├── OTA_ADU_GUIDE.md (OTA & Azure Device Update)
 ├── TCP_SERVICE_PROTOCOL.md (command protocol)
+├── FIRMWARE_IMPLEMENTATION.md (technical details)
 └── scripts/
     ├── configure_device_eeprom.ps1
+    ├── read_device_config.ps1
     ├── test_sensors.ps1
     ├── trigger_ota_update.ps1
-    └── read_device_config.ps1
+    └── pico_firmware/
 ```
 
 ## New Headers in pico_firmware/
