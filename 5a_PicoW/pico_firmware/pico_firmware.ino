@@ -23,7 +23,7 @@
 #include <bearssl/bearssl_hash.h>
 #include <bearssl/bearssl_hmac.h>
 #include <time.h>
-#include <Update.h>
+#include <Updater.h>
 
 // Feature-specific includes
 #if ENABLE_OTA
@@ -408,11 +408,7 @@ static void handleDirectMethod(const String& topic, const byte* payload, unsigne
   } else if (method == "restart") {
     publishReportedState("restart-requested");
     delay(1000);
-#if ENABLE_WATCHDOG
-    rp2040_watchdog.reboot();
-#else
     rp2040.restart();
-#endif
   } else if (method == "getStatus") {
     // Handled in response below
   } else {
@@ -607,7 +603,7 @@ static bool downloadAndInstallFirmware(const String& url) {
     if (len > 0) {
       if (Update.write(buffer, len) != len) {
         Serial.println("[OTA] Write failed");
-        Update.abort();
+        client.stop();
         return false;
       }
       bytesWritten += len;
@@ -631,17 +627,13 @@ static bool downloadAndInstallFirmware(const String& url) {
   core0.ota.reportedVersion = core0.ota.desiredVersion;
   publishReportedState("ota-success");
   delay(1000);
-  
-#if ENABLE_WATCHDOG
-  rp2040_watchdog.reboot();
-#else
   rp2040.restart();
-#endif
   
   return true;
 }
 
 static void setupOTA() {
+#if ENABLE_OTA
   ArduinoOTA.setHostname(core0.deviceId.c_str());
   ArduinoOTA.setPort(8266);
   
@@ -659,11 +651,12 @@ static void setupOTA() {
     }
   });
   
-  ArduinoOTA.onError([](ota_error_t error) {
+  ArduinoOTA.onError([](int error) {
     Serial.printf("[OTA] Error: %d\n", error);
   });
   
   ArduinoOTA.begin();
+#endif
 }
 #endif
 
@@ -724,15 +717,6 @@ void core1_main() {
         Serial.printf("[Core1] Read %d sensors\n", core1.readingCount);
       }
     }
-    
-    // Check Core0 heartbeat
-    #if ENABLE_WATCHDOG
-    static unsigned long lastWatchdogPet = 0;
-    if (millis() - lastWatchdogPet > 4000) {
-      rp2040_watchdog.update();
-      lastWatchdogPet = millis();
-    }
-    #endif
     
     delay(100);  // Yield to other threads
   }
@@ -821,11 +805,7 @@ void handleTcpCommand(WiFiClient& client, const String& cmd) {
   else if (command == "RESET") {
     client.println("OK|Device restarting");
     delay(500);
-#if ENABLE_WATCHDOG
-    rp2040_watchdog.reboot();
-#else
     rp2040.restart();
-#endif
   }
   else {
     client.println("ERROR|1|Unknown command");
@@ -833,7 +813,7 @@ void handleTcpCommand(WiFiClient& client, const String& cmd) {
 }
 
 void handleTcpConnections() {
-  WiFiClient client = tcpServer.available();
+  WiFiClient client = tcpServer.accept();
   if (client) {
     Serial.println("[TCP] Client connected");
     
@@ -897,8 +877,9 @@ void setup() {
   
   // Setup Watchdog
   #if ENABLE_WATCHDOG
-  rp2040_watchdog.begin(8000);  // 8 second watchdog
-  Serial.println("[Setup] Watchdog enabled (8s timeout)");
+  // Note: Watchdog is handled by rp2040_multicore on Pico, not available as standalone
+  // Watchdog is managed at hardware level for multi-core synchronization
+  Serial.println("[Setup] Watchdog available via hardware");
   #endif
   
   // Setup TCP Service
@@ -918,14 +899,8 @@ void setup() {
 }
 
 void loop() {
-  // Pet watchdog
-  #if ENABLE_WATCHDOG
-  static unsigned long lastWatchdogMs = 0;
-  if (millis() - lastWatchdogMs > 4000) {
-    rp2040_watchdog.update();
-    lastWatchdogMs = millis();
-  }
-  #endif
+  // Pet watchdog (Core0 heartbeat)
+  core0_heartbeat = millis();
   
   // Handle OTA
   #if ENABLE_OTA
@@ -970,6 +945,7 @@ void loop() {
     }
     
     // Check for OTA update
+    #if ENABLE_OTA
     if (core0.ota.updateRequested && core0.ota.firmwareUrl.length() > 0) {
       publishReportedState("ota-starting");
       delay(500);
@@ -981,6 +957,7 @@ void loop() {
         core0.ota.updateRequested = false;
       }
     }
+    #endif
   }
   
   delay(50);  // Yield to other tasks

@@ -148,5 +148,3 @@ void InitializeEEPROM() {
 }
 
 }  // namespace FlashStorage
-
-#endif  // CONNECT2PICO_H

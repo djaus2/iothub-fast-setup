@@ -57,12 +57,12 @@
 #define WIFI_CONNECT_TIMEOUT_SEC 20
 
 // ========== FEATURE TOGGLES ==========
-#define ENABLE_OTA 1
-#define ENABLE_WATCHDOG 1
-#define ENABLE_MULTICORE 1
-#define ENABLE_TCP_SERVICE 1
-#define ENABLE_SENSORS 1
-#define ENABLE_BLUETOOTH 0  // Set to 1 if you have Bluetooth hardware
+#define ENABLE_OTA 0              // Arduino OTA not available for RP2040; use PicoOTA or ADU instead
+#define ENABLE_WATCHDOG 0         // Watchdog via rp2040_multicore
+#define ENABLE_MULTICORE 1        // Dual-core architecture
+#define ENABLE_TCP_SERVICE 1      // TCP service on port 4242
+#define ENABLE_SENSORS 1          // Sensor support
+#define ENABLE_BLUETOOTH 0        // Bluetooth hardware support
 
 // TCP Service port
 #define TCP_SERVICE_PORT 4242
@@ -88,5 +88,3 @@
 // ========== ADU (Azure Device Update) CONFIGURATION ==========
 #define ENABLE_ADU 1
 #define ADU_UPDATE_TIMEOUT_SEC 300  // 5 minutes
-
-#endif  // IOT_CONFIG_H

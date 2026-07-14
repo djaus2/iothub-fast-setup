@@ -213,5 +213,3 @@ public:
     return allOk;
   }
 };
-
-#endif  // PICO_SENSORS_H
