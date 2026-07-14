@@ -24,12 +24,9 @@
 #include <bearssl/bearssl_hmac.h>
 #include <time.h>
 #include <Updater.h>
-
-// Feature-specific includes
-#if ENABLE_OTA
 #include <ArduinoOTA.h>
-#endif
 
+// Conditional includes
 #if ENABLE_WATCHDOG
 #include <rp2040_watchdog.h>
 #endif
@@ -520,129 +517,20 @@ static bool connectMqtt() {
 }
 
 // ============================================================================
-// OTA UPDATE HANDLER
+// OTA SETUP
 // ============================================================================
 
-#if ENABLE_OTA
-static bool downloadAndInstallFirmware(const String& url) {
-  Serial.println("[OTA] Starting firmware download and installation...");
-  
-  WiFiClientSecure client;
-  client.setInsecure();
-  
-  // Parse URL
-  String host = url;
-  String path = "/";
-  
-  int protoEnd = host.indexOf("://");
-  if (protoEnd >= 0) host = host.substring(protoEnd + 3);
-  
-  int pathStart = host.indexOf('/');
-  if (pathStart >= 0) {
-    path = host.substring(pathStart);
-    host = host.substring(0, pathStart);
-  }
-  
-  // Extract port from host if present
-  int port = 443;
-  int portIdx = host.indexOf(':');
-  if (portIdx >= 0) {
-    port = host.substring(portIdx + 1).toInt();
-    host = host.substring(0, portIdx);
-  }
-  
-  Serial.printf("[OTA] Connecting to %s:%d\n", host.c_str(), port);
-  
-  if (!client.connect(host.c_str(), port)) {
-    Serial.println("[OTA] Connection failed");
-    return false;
-  }
-  
-  // Send HTTP GET
-  client.print("GET " + path + " HTTP/1.1\r\n");
-  client.print("Host: " + host + "\r\n");
-  client.print("Connection: close\r\n\r\n");
-  
-  // Parse HTTP response
-  int contentLength = 0;
-  bool inBody = false;
-  String line;
-  
-  while (client.available()) {
-    line = client.readStringUntil('\n');
-    
-    if (!inBody) {
-      if (line.startsWith("Content-Length:")) {
-        contentLength = line.substring(15).toInt();
-        Serial.printf("[OTA] Firmware size: %d bytes\n", contentLength);
-      }
-      if (line == "\r") {
-        inBody = true;
-        break;
-      }
-    }
-  }
-  
-  if (contentLength == 0) {
-    Serial.println("[OTA] No content-length header");
-    return false;
-  }
-  
-  // Start firmware update
-  if (!Update.begin(contentLength)) {
-    Serial.println("[OTA] Update.begin() failed");
-    return false;
-  }
-  
-  // Stream firmware to flash
-  uint32_t bytesWritten = 0;
-  uint8_t buffer[512];
-  
-  while (client.available()) {
-    int len = client.read(buffer, sizeof(buffer));
-    if (len > 0) {
-      if (Update.write(buffer, len) != len) {
-        Serial.println("[OTA] Write failed");
-        client.stop();
-        return false;
-      }
-      bytesWritten += len;
-      
-      // Progress indicator
-      if (bytesWritten % 4096 == 0) {
-        Serial.printf("[OTA] Progress: %d/%d\n", bytesWritten, contentLength);
-      }
-    }
-  }
-  
-  client.stop();
-  
-  // Finalize and verify
-  if (!Update.end(true)) {
-    Serial.println("[OTA] Update.end() failed");
-    return false;
-  }
-  
-  Serial.println("[OTA] Firmware update successful - restarting");
-  core0.ota.reportedVersion = core0.ota.desiredVersion;
-  publishReportedState("ota-success");
-  delay(1000);
-  rp2040.restart();
-  
-  return true;
-}
-
 static void setupOTA() {
-#if ENABLE_OTA
   ArduinoOTA.setHostname(core0.deviceId.c_str());
   ArduinoOTA.setPort(8266);
   
   ArduinoOTA.onStart([]() {
-    Serial.println("[OTA] Arduino OTA start");
+    Serial.println("[OTA] Start - stopping other operations");
+    core0.telemetry.enabled = false;
   });
   
   ArduinoOTA.onEnd([]() {
-    Serial.println("[OTA] Arduino OTA end");
+    Serial.println("[OTA] End - restarting device");
   });
   
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
@@ -653,12 +541,23 @@ static void setupOTA() {
   
   ArduinoOTA.onError([](int error) {
     Serial.printf("[OTA] Error: %d\n", error);
+    if (error == OTA_AUTH_ERROR) {
+      Serial.println("[OTA] Auth failed");
+    } else if (error == OTA_BEGIN_ERROR) {
+      Serial.println("[OTA] Begin failed");
+    } else if (error == OTA_CONNECT_ERROR) {
+      Serial.println("[OTA] Connect failed");
+    } else if (error == OTA_RECEIVE_ERROR) {
+      Serial.println("[OTA] Receive failed");
+    } else if (error == OTA_END_ERROR) {
+      Serial.println("[OTA] End failed");
+    }
+    core0.telemetry.enabled = true;
   });
   
   ArduinoOTA.begin();
-#endif
+  Serial.println("[OTA] Ready - upload new sketch via Arduino IDE (Network port)");
 }
-#endif
 
 // ============================================================================
 // CORE1: SENSOR POLLING LOOP
@@ -869,11 +768,9 @@ void setup() {
   WiFi.mode(WIFI_STA);
   core0.wifiClient.setInsecure();
   
-  // Setup OTA (Arduino)
-  #if ENABLE_OTA
+  // Setup OTA
   setupOTA();
-  Serial.println("[Setup] Arduino OTA enabled");
-  #endif
+  Serial.println("[Setup] Arduino OTA enabled - upload via IDE");
   
   // Setup Watchdog
   #if ENABLE_WATCHDOG
@@ -903,9 +800,7 @@ void loop() {
   core0_heartbeat = millis();
   
   // Handle OTA
-  #if ENABLE_OTA
   ArduinoOTA.handle();
-  #endif
   
   // Handle TCP connections
   #if ENABLE_TCP_SERVICE
@@ -943,21 +838,6 @@ void loop() {
       core0.telemetry.lastSendMs = millis();
       publishTelemetry();
     }
-    
-    // Check for OTA update
-    #if ENABLE_OTA
-    if (core0.ota.updateRequested && core0.ota.firmwareUrl.length() > 0) {
-      publishReportedState("ota-starting");
-      delay(500);
-      
-      if (downloadAndInstallFirmware(core0.ota.firmwareUrl)) {
-        // Device will restart
-      } else {
-        publishReportedState("ota-failed");
-        core0.ota.updateRequested = false;
-      }
-    }
-    #endif
   }
   
   delay(50);  // Yield to other tasks

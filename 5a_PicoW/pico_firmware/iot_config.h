@@ -57,7 +57,7 @@
 #define WIFI_CONNECT_TIMEOUT_SEC 20
 
 // ========== FEATURE TOGGLES ==========
-#define ENABLE_OTA 0              // Arduino OTA not available for RP2040; use PicoOTA or ADU instead
+#define ENABLE_OTA 1              // Arduino OTA - fully supported for RP2040
 #define ENABLE_WATCHDOG 0         // Watchdog via rp2040_multicore
 #define ENABLE_MULTICORE 1        // Dual-core architecture
 #define ENABLE_TCP_SERVICE 1      // TCP service on port 4242
