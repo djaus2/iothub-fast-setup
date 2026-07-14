@@ -33,6 +33,36 @@ The Arduino CLI-based Pico flow is in [5a_PicoW/README.md](5a_PicoW/README.md).
 
 Use this when you want a host-side build/upload workflow for Pico W / Pico W2 with Earle Philhower's BSP.
 
+## Softata Integration Track (6_Softata)
+
+The **Softata integration** merges advanced features into the Pico W firmware:
+- ✅ **Multi-core architecture** (Core1: Sensors, Core2: MQTT/Cloud)
+- ✅ **OTA Updates** with Azure Device Update (ADU) support
+- ✅ **EEPROM Persistence** (WiFi, device ID, connection strings)
+- ✅ **Sensor Abstraction** (DHT11, DHT22, BME280, Ultrasonic)
+- ✅ **TCP Service** on port 4242 for local command protocol
+- ✅ **Watchdog Support** for device reliability
+
+See [6_Softata/README.md](6_Softata/README.md) for:
+- Architecture overview
+- Configuration guides
+- OTA & Azure Device Update workflows
+- Sensor integration details
+- TCP service protocol documentation
+- Management scripts
+
+**Quick Start:**
+```powershell
+# Configure device EEPROM
+.\6_Softata\scripts\configure_device_eeprom.ps1 -DeviceId "picow1" -IotHubName "my-hub"
+
+# Test sensors
+.\6_Softata\scripts\test_sensors.ps1 -Duration 60
+
+# Trigger OTA update
+.\6_Softata\scripts\trigger_ota_update.ps1 -DeviceId "picow1" -NewVersion "1.0.1"
+```
+
 ## Blog posts
 
 For more information see the blog posts:
